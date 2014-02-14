@@ -8,23 +8,25 @@ public class Pic2Ascii {
 
     // The symbols to be used for the ascii picture, ordered from darker to
     // lighter
-    private static char[] symbols = {'@', '"', '#', '?', '*', '^', '=', '\''};
+    private static char[] symbols = {'@', '#', '?', '*', '=', '^', '\''};
 
     public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Usage: Pic2Ascii <filename> <maxSize>");
+        if (args.length < 3) {
+            System.out.println(
+                    "Usage: Pic2Ascii <filename> <rectSizeX> <rectSizeY>"
+            );
             return;
         }
 
         BufferedImage img;
-        int maxSize;
+        int rectSizeX, rectSizeY;
 
         try {
             File file = new File(args[0]);
             img = ImageIO.read(file);
         } catch (Exception e) {
-            System.err.println("Error while reading image. Please consult " +
-                    "this beautiful stack trace:");
+            System.err.println("Error reading image. Please consult this " +
+                    "beautiful stack trace:");
             e.printStackTrace();
             return;
         }
@@ -35,62 +37,77 @@ public class Pic2Ascii {
         }
 
         try {
-            maxSize = Integer.parseInt(args[1]);
+            rectSizeX = Integer.parseInt(args[1]);
+            rectSizeY = Integer.parseInt(args[2]);
         } catch (Exception e) {
-            System.err.println("Error: the maxSize argument must be an int.");
+            System.err.println(
+                    "Error: the rectangle dimensions must be integers."
+            );
             return;
         }
 
-        System.out.println("Original size: " +
-            img.getWidth() + " x " + img.getHeight());
-
-        double d = Math.max(img.getWidth(), img.getHeight()) / maxSize;
-        int width = (int) (img.getWidth() / d);
-        int height = (int) (img.getHeight() / (d * 2.5));
-        img = getScaledImage(img, width, height);
-
-        System.out.println("New size: " +
-                img.getWidth() + " x " + img.getHeight());
-
-        printAscii(img);
+        printAscii(img, rectSizeX, rectSizeY);
     }
 
     /**
-     * Prints an ascii picture representing the provided picture. The picture
-     * should be in grayscale and not *too* large.
+     * Prints an ascii picture representing the provided picture.
      * @param img the source image
      */
-    private static void printAscii(BufferedImage img) {
-        int width = img.getWidth();
-        int height = img.getHeight();
+    public static void printAscii(BufferedImage img, int rectSizeX,
+                                   int rectSizeY) {
+        img = getGrayscaleImage(img);
+        int width = (int) (img.getWidth() / rectSizeX);
+        int height = (int) (img.getHeight() / rectSizeY);
         Raster raster = img.getData();
 
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
-                int sample = raster.getSample(j, i, 0);
-                System.out.print(getSymbol(sample));
+                int avgLevel = getAverageLevel(raster,
+                        j * rectSizeX, i * rectSizeY,
+                        rectSizeX, rectSizeY);
+                System.out.print(getSymbol(avgLevel));
             }
             System.out.println();
         }
     }
 
     /**
-     * Returns a scaled and _grayscaled_ copy of an image.
+     * Returns a grayscale copy of an image.
      * @param srcImg the source image
-     * @param width the desired width
-     * @param height the desired height
-     * @return a scaled copy of the source image in grayscale.
+     * @return a grayscale copy of the provided image.
      */
-    private static BufferedImage getScaledImage(BufferedImage srcImg,
-                                                int width, int height) {
-        BufferedImage resizedImg = new BufferedImage(width, height,
-                BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D g2 = resizedImg.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.drawImage(srcImg, 0, 0, width, height, null);
+    private static BufferedImage getGrayscaleImage(BufferedImage srcImg) {
+        BufferedImage grayscaleImg = new BufferedImage(srcImg.getWidth(),
+                srcImg.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D g2 = grayscaleImg.createGraphics();
+        g2.drawImage(srcImg, 0, 0, null);
         g2.dispose();
-        return resizedImg;
+        return grayscaleImg;
+    }
+
+    /**
+     * Returns the average level for a part of a raster image.
+     * @param raster the raster image
+     * @param startX the top-left x coordinate of the area
+     * @param startY the top-left y coordinate of the area
+     * @param sizeX the size of the area along the x-axis
+     * @param sizeY the size of the area along the y-axis
+     * @return the average level for the specified raster area.
+     */
+    private static int getAverageLevel(Raster raster, int startX, int startY,
+                                       int sizeX, int sizeY) {
+        int numPixels = sizeX * sizeY;
+        int levelSum = 0;
+
+        for (int i = startY, maxY = Math.min(raster.getHeight(),
+                startY + sizeY); i < maxY; i++) {
+            for (int j = startX, maxX = Math.min(raster.getWidth(),
+                    startX + sizeX); j < maxX; j++) {
+                levelSum += raster.getSample(j, i, 0);
+            }
+        }
+
+        return levelSum / numPixels;
     }
 
     /**
