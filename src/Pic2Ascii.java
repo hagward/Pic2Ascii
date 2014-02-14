@@ -3,12 +3,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.File;
+import java.io.PrintStream;
 
 public class Pic2Ascii {
-
-    // The symbols to be used for the ascii picture, ordered from darker to
-    // lighter
-    private static char[] symbols = {'@', '#', '?', '*', '=', '^', '\''};
 
     public static void main(String[] args) {
         if (args.length < 3) {
@@ -16,6 +13,10 @@ public class Pic2Ascii {
                     "<rectSizeY> (<symbol> ...)");
             return;
         }
+
+        // The predefined symbols to be used for the ascii picture, ordered from
+        // dark to light
+        char[] symbols = {'@', '#', '?', '*', '=', '^', '\''};
 
         BufferedImage img;
         int rectSizeX, rectSizeY;
@@ -48,20 +49,27 @@ public class Pic2Ascii {
             rectSizeX = Integer.parseInt(args[1]);
             rectSizeY = Integer.parseInt(args[2]);
         } catch (Exception e) {
-            System.err.println(
-                    "Error: the rectangle dimensions must be integers."
-            );
+            System.err.println("Error: non-int rectangle dimensions.");
             return;
         }
 
-        printAscii(img, rectSizeX, rectSizeY);
+        Pic2Ascii p2a = new Pic2Ascii(System.out, symbols);
+        p2a.printAscii(img, rectSizeX, rectSizeY);
+    }
+
+    private PrintStream printStream;
+    private char[] symbols;
+
+    public Pic2Ascii(PrintStream out, char[] symbols) {
+        this.printStream = out;
+        this.symbols = symbols;
     }
 
     /**
      * Prints an ascii picture representing the provided picture.
      * @param img the source image
      */
-    public static void printAscii(BufferedImage img, int rectSizeX,
+    public void printAscii(BufferedImage img, int rectSizeX,
                                    int rectSizeY) {
         img = getGrayscaleImage(img);
         int width = (int) (img.getWidth() / rectSizeX);
@@ -73,9 +81,9 @@ public class Pic2Ascii {
                 int avgLevel = getAverageLevel(raster,
                         j * rectSizeX, i * rectSizeY,
                         rectSizeX, rectSizeY);
-                System.out.print(getSymbol(avgLevel));
+                printStream.print(getSymbol(avgLevel));
             }
-            System.out.println();
+            printStream.println();
         }
     }
 
@@ -123,7 +131,7 @@ public class Pic2Ascii {
      * @param level the level in the range [0, 255]
      * @return the symbol corresponding to the level.
      */
-    private static char getSymbol(int level) {
+    private char getSymbol(int level) {
         int interval = 255 / symbols.length;
         int symbolIndex = level / interval;
 
