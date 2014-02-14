@@ -12,9 +12,8 @@ public class Pic2Ascii {
 
     public static void main(String[] args) {
         if (args.length < 3) {
-            System.out.println(
-                    "Usage: Pic2Ascii <filename> <rectSizeX> <rectSizeY>"
-            );
+            System.out.println("Usage: Pic2Ascii <filename> <rectSizeX> " +
+                    "<rectSizeY> (<symbol> ...)");
             return;
         }
 
@@ -34,6 +33,15 @@ public class Pic2Ascii {
         if (img == null) {
             System.err.println("Error: not a valid picture.");
             return;
+        }
+
+        // Use the user provided symbols
+        if (args.length > 3) {
+            symbols = new char[args.length - 3];
+            for (int i = 3; i < args.length; i++) {
+                char c = args[i].charAt(0);
+                symbols[i - 3] = c;
+            }
         }
 
         try {
